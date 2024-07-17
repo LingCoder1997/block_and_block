@@ -76,7 +76,26 @@ def transform_brick(brick_dict,rows,cols):
     return brick_list
 
 
+def determine_direction(dx, dy):
+    """
+    Determines the direction of the mouse movement based on dx and dy.
+    Returns 'left', 'right', 'up', or 'down'.
+    """
+    if abs(dx) > abs(dy):
+        return 'right' if dx > 0 else 'left'
+    else:
+        return 'down' if dy > 0 else 'up'
+
+
+def same_direction_group(dir1, dir2):
+    # 判断两个方向是否都属于同一组 (up, down) 或者 (left, right)
+    if (dir1 in ['up', 'down'] and dir2 in ['up', 'down']) or (dir1 in ['left', 'right'] and dir2 in ['left', 'right']):
+        return True
+    else:
+        return False
 
 if __name__ == '__main__':
-    brick_panel = generate_pattern(rows=4,cols=8,max_dul=3)
-    print(brick_panel)
+    x = 10
+
+    for i in range(x,20):
+        print(i)
