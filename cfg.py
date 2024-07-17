@@ -1,5 +1,7 @@
 import pygame
 
+background_pic = r""
+
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 700
 BRICK_SIZE = 50

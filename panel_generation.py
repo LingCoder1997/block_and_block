@@ -11,7 +11,7 @@ pygame.init()
 # Set up the window
 window = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pygame.display.set_caption('砖块矩阵展示')
-
+background_image = pygame.image.load("background.jpg")
 
 class Panel:
     def __init__(self, rows, cols, max_dul):
