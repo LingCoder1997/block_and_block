@@ -3,48 +3,7 @@ import pygame
 import sys
 from algo import generate_pattern,determine_direction,same_direction_group
 import itertools
-
-# Constants
-WINDOW_WIDTH = 800
-WINDOW_HEIGHT = 700
-BRICK_SIZE = 50
-BRICK_BORDER_WIDTH = 2
-MOVE_THRESHOLD = 10
-
-# Panel configuration
-nrows = 6
-ncols = 6
-max_dul = 2
-
-# Color mapping for bricks
-color_map = {
-    'A': pygame.Color('red'),
-    'B': pygame.Color('green'),
-    'C': pygame.Color('blue'),
-    'D': pygame.Color('orange'),
-    'E': pygame.Color('yellow'),
-    'F': pygame.Color('purple'),
-    'G': pygame.Color('cyan'),
-    'H': pygame.Color('pink'),
-    'I': pygame.Color('teal'),
-    'J': pygame.Color('brown'),
-    'K': pygame.Color('lightblue'),
-    'L': pygame.Color('lightgreen'),
-    'M': pygame.Color('lightcoral'),
-    'N': pygame.Color('lightsalmon'),
-    'O': pygame.Color('lightpink'),
-    'P': pygame.Color('lightgray'),
-    'Q': pygame.Color('darkred'),
-    'R': pygame.Color('darkgreen'),
-    'S': pygame.Color('darkblue'),
-    'T': pygame.Color('darkorange'),
-    'U': pygame.Color('darkcyan'),
-    'V': pygame.Color('darkmagenta'),
-    'W': pygame.Color('darkviolet'),
-    'X': pygame.Color('indianred'),
-    'Y': pygame.Color('sienna'),
-    'Z': pygame.Color('slateblue')
-}
+from cfg import *
 
 # Initialize pygame
 pygame.init()
@@ -96,6 +55,13 @@ class Panel:
             brick.y = self.panel_y + new_row * BRICK_SIZE
             self.bricks[new_row][new_col] = brick
 
+    def get_same_bricks(self, value):
+        temp_bricks = []
+        for i in range(self.rows):
+            for j in range(self.cols):
+                if self.bricks[i][j].brick_value == value:
+                    temp_bricks.append(self.bricks[i][j])
+        return temp_bricks
 
     def delete_brick(self, row, col):
         self.bricks[row][col] = None
@@ -229,8 +195,47 @@ class Brick:
         self.prev_mouse_x = None
         self.prev_mouse_y = None
 
+        self.shaking = False
+        self.shake_timer = 0
+        self.shake_angles = [6, -12, 6]
+        self.shake_index = 0
+
     def draw(self):
-        pygame.draw.rect(window, self.color, (self.x, self.y, BRICK_SIZE, BRICK_SIZE))
+        if self.shaking:
+            self.shake_timer += 1
+            if self.shake_timer < 3:
+                angle = self.shake_angles[self.shake_index]
+                self.shake_index = (self.shake_index + 1) % len(self.shake_angles)
+            else:
+                self.shaking = False
+                self.shake_timer = 0
+                self.shake_index = 0
+                angle = 0
+        else:
+            angle = 0
+
+        # Create the original surface for the brick
+        original_surface = pygame.Surface((BRICK_SIZE, BRICK_SIZE), pygame.SRCALPHA)
+        original_surface.fill(self.color)
+
+        # Create the font and render the text onto a separate surface
+        font = pygame.font.Font(None, 30)
+        text_surface = font.render(self.brick_value, True, pygame.Color('white'))
+
+        # Get the rect for the text surface
+        text_rect = text_surface.get_rect(center=(BRICK_SIZE // 2, BRICK_SIZE // 2))
+
+        # Blit the text onto the original brick surface
+        original_surface.blit(text_surface, text_rect)
+
+        # Rotate the original surface with the text
+        rotated_surface = pygame.transform.rotate(original_surface, angle)
+        rotated_rect = rotated_surface.get_rect(center=(self.x + BRICK_SIZE // 2, self.y + BRICK_SIZE // 2))
+
+        # Draw the rotated surface
+        window.blit(rotated_surface, rotated_rect.topleft)
+
+        # Draw the border
         pygame.draw.rect(window, pygame.Color('black'), (self.x, self.y, BRICK_SIZE, BRICK_BORDER_WIDTH))
         pygame.draw.rect(window, pygame.Color('black'), (self.x, self.y, BRICK_BORDER_WIDTH, BRICK_SIZE))
         pygame.draw.rect(window, pygame.Color('black'),
@@ -238,10 +243,10 @@ class Brick:
         pygame.draw.rect(window, pygame.Color('black'),
                          (self.x + BRICK_SIZE - BRICK_BORDER_WIDTH, self.y, BRICK_BORDER_WIDTH, BRICK_SIZE))
 
-        font = pygame.font.Font(None, 30)
-        text_surface = font.render(self.brick_value, True, pygame.Color('white'))
-        text_rect = text_surface.get_rect(center=(self.x + BRICK_SIZE // 2, self.y + BRICK_SIZE // 2))
-        window.blit(text_surface, text_rect)
+    def shake(self):
+        self.shaking = True
+        self.shake_timer = 0
+        self.shake_index = 0
 
     def get_top(self):
         return self.x, self.y
@@ -295,8 +300,11 @@ class Brick:
     def reset_position(self):
         ori_row, ori_col = self.panel.pos_to_index(self.original_x, self.original_y)
         if ori_row == self.row_idx and ori_col == self.col_idx:
+            brick_list = self.panel.get_same_bricks(self.brick_value)
             self.x = self.original_x
             self.y = self.original_y
+            for b in brick_list:
+                b.shake()
         else:
             self.panel.move_brick(self, ori_row, ori_col)
 
@@ -468,7 +476,6 @@ def main():
                         break
 
             elif event.type == pygame.MOUSEBUTTONUP:
-
                 if event.button == 1 and dragging_brick is not None:
                     if dragging_bricks is None:
                         round_x, round_y = round_to_nearest_50(dragging_brick.x), round_to_nearest_50(dragging_brick.y)
